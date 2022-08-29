@@ -5,6 +5,25 @@ const middleware = require("./middleware");
 
 app.use(middleware);
 
+const verifyRole = (req, res, next) => {
+  const alldata = connection.query(
+    "SELECT * FROM user_list WHERE id = ?",
+    req.headers.id,
+    (error, result) => {
+      if (error) {
+        return res.status(400).message(error.message);
+      } else {
+        const admin = result.find((f) => f.role === "admin");
+        if (admin) {
+          next();
+        } else {
+          res.status(401).send("Unauthorized User");
+        }
+      }
+    }
+  );
+};
+
 app.get("/user", (req, res) => {
   const query = "SELECT * FROM user_list";
   connection.query(query, (error, result) => {
@@ -16,7 +35,7 @@ app.get("/user", (req, res) => {
   });
 });
 
-app.post("/postUser", (req, res) => {
+app.post("/postUser", verifyRole, (req, res) => {
   const body = req.body;
   const query = `SELECT * FROM user_list`;
   connection.query(query, body, (error, result) => {
@@ -56,7 +75,7 @@ app.put("/:id", (req, res) => {
   });
 });
 
-app.patch("/:id", (req, res) => {
+app.patch("/:id", verifyRole, (req, res) => {
   const id = req.params.id;
   const params = req.body;
   console.log(params);
@@ -70,7 +89,7 @@ app.patch("/:id", (req, res) => {
   });
 });
 
-app.delete("/:id", (req, res) => {
+app.delete("/:id", verifyRole, (req, res) => {
   const id = req.params.id;
   const query = "DELETE FROM `user_list` WHERE id=?";
   connection.query(query, id, (error, result) => {
